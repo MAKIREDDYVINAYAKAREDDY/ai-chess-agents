@@ -1,0 +1,399 @@
+const PIECES = {
+    "P": "♙",
+    "N": "♘",
+    "B": "♗",
+    "R": "♖",
+    "Q": "♕",
+    "K": "♔",
+    "p": "♟",
+    "n": "♞",
+    "b": "♝",
+    "r": "♜",
+    "q": "♛",
+    "k": "♚"
+};
+
+let state = null;
+let selectedSquare = null;
+
+const boardElement = document.getElementById("board");
+const statusElement = document.getElementById("gameStatus");
+const turnIndicator = document.getElementById("turnIndicator");
+const fenElement = document.getElementById("fen");
+const moveHistoryElement = document.getElementById("moveHistory");
+const capturedElement = document.getElementById("captured");
+
+const modeElement = document.getElementById("mode");
+const humanColorElement = document.getElementById("humanColor");
+const stockfishLevelElement = document.getElementById("stockfishLevel");
+const levelValueElement = document.getElementById("levelValue");
+
+stockfishLevelElement.addEventListener("input", () => {
+    levelValueElement.textContent = stockfishLevelElement.value;
+});
+
+function squareName(row, col) {
+    return String.fromCharCode(97 + col) + (8 - row);
+}
+
+function parseFen(fen) {
+    const placement = fen.split(" ")[0];
+    const rows = placement.split("/");
+
+    const board = [];
+
+    for (const row of rows) {
+        const cells = [];
+
+        for (const char of row) {
+            if (/[1-8]/.test(char)) {
+                for (let i = 0; i < Number(char); i++) {
+                    cells.push(null);
+                }
+            } else {
+                cells.push(char);
+            }
+        }
+
+        board.push(cells);
+    }
+
+    return board;
+}
+
+function isCaptureMove(uci) {
+    if (!state) return false;
+
+    const target = uci.slice(2, 4);
+    const board = parseFen(state.fen);
+    const col = target.charCodeAt(0) - 97;
+    const row = 8 - Number(target[1]);
+
+    return board[row][col] !== null;
+}
+
+function renderBoard() {
+    if (!state) return;
+
+    const board = parseFen(state.fen);
+    const legalMoves = state.legal_moves || [];
+
+    boardElement.innerHTML = "";
+
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const square = squareName(row, col);
+            const piece = board[row][col];
+
+            const element = document.createElement("div");
+
+            element.className =
+                "square " +
+                ((row + col) % 2 === 0 ? "light" : "dark");
+
+            element.dataset.square = square;
+
+            if (selectedSquare === square) {
+                element.classList.add("selected");
+            }
+
+            if (selectedSquare) {
+                const move = selectedSquare + square;
+
+                const promotionMoves = legalMoves.filter(
+                    candidate =>
+                        candidate.startsWith(move)
+                );
+
+                if (promotionMoves.length > 0) {
+                    element.classList.add("legal");
+
+                    if (isCaptureMove(promotionMoves[0])) {
+                        element.classList.add("capture");
+                    }
+                }
+            }
+
+            if (piece) {
+                const pieceElement = document.createElement("span");
+                pieceElement.className = "piece";
+                pieceElement.textContent = PIECES[piece] || piece;
+                element.appendChild(pieceElement);
+            }
+
+            element.addEventListener("click", () => {
+                handleSquareClick(square);
+            });
+
+            boardElement.appendChild(element);
+        }
+    }
+}
+
+function handleSquareClick(square) {
+    if (!state || state.game_over) return;
+
+    if (
+        state.mode.startsWith("human_vs_") &&
+        state.turn !== state.human_color
+    ) {
+        return;
+    }
+
+    const board = parseFen(state.fen);
+    const row = 8 - Number(square[1]);
+    const col = square.charCodeAt(0) - 97;
+    const piece = board[row][col];
+
+    if (!selectedSquare) {
+        if (!piece) return;
+
+        const isWhitePiece = piece === piece.toUpperCase();
+        const pieceColor = isWhitePiece ? "white" : "black";
+
+        if (pieceColor !== state.turn) return;
+
+        selectedSquare = square;
+        renderBoard();
+        return;
+    }
+
+    if (selectedSquare === square) {
+        selectedSquare = null;
+        renderBoard();
+        return;
+    }
+
+    let uci = selectedSquare + square;
+
+    let matchingMoves = state.legal_moves.filter(
+        move => move.startsWith(uci)
+    );
+
+    if (matchingMoves.length === 0) {
+        selectedSquare = null;
+        renderBoard();
+        return;
+    }
+
+    // Automatic queen promotion for now.
+    if (matchingMoves.length > 1) {
+        const queenPromotion = matchingMoves.find(
+            move => move.endsWith("q")
+        );
+
+        if (queenPromotion) {
+            uci = queenPromotion;
+        } else {
+            uci = matchingMoves[0];
+        }
+    } else {
+        uci = matchingMoves[0];
+    }
+
+    selectedSquare = null;
+    sendMove(uci);
+}
+
+async function sendMove(uci) {
+    try {
+        const response = await fetch("/api/move", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ uci })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            showError(data.error);
+            return;
+        }
+
+        state = data.state;
+        render();
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+async function newGame() {
+    selectedSquare = null;
+
+    const payload = {
+        mode: modeElement.value,
+        human_color: humanColorElement.value,
+        stockfish_level: Number(stockfishLevelElement.value)
+    };
+
+    try {
+        const response = await fetch("/api/new", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            showError(data.error);
+            return;
+        }
+
+        state = data.state;
+        render();
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+async function undo() {
+    selectedSquare = null;
+
+    try {
+        const response = await fetch("/api/undo", {
+            method: "POST"
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            showError(data.error);
+            return;
+        }
+
+        state = data.state;
+        render();
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+async function resetGame() {
+    await newGame();
+}
+
+function renderMoves() {
+    const moves = state.moves || [];
+
+    document.getElementById("moveCount").textContent =
+        moves.length;
+
+    document.getElementById("moveTotal").textContent =
+        moves.length;
+
+    if (!moves.length) {
+        moveHistoryElement.textContent = "No moves yet.";
+        return;
+    }
+
+    moveHistoryElement.innerHTML = "";
+
+    for (let i = 0; i < moves.length; i += 2) {
+        const row = document.createElement("div");
+        row.className = "move-row";
+
+        const number = document.createElement("span");
+        number.className = "move-number";
+        number.textContent = `${Math.floor(i / 2) + 1}.`;
+
+        const white = document.createElement("span");
+        white.textContent = moves[i] || "";
+
+        const black = document.createElement("span");
+        black.textContent = moves[i + 1] || "";
+
+        row.appendChild(number);
+        row.appendChild(white);
+        row.appendChild(black);
+
+        moveHistoryElement.appendChild(row);
+    }
+}
+
+function renderCaptured() {
+    if (!state.captured || !state.captured.length) {
+        capturedElement.textContent = "—";
+        return;
+    }
+
+    capturedElement.textContent =
+        state.captured
+            .map(piece => PIECES[piece] || piece)
+            .join(" ");
+}
+
+function render() {
+    renderBoard();
+    renderMoves();
+    renderCaptured();
+
+    statusElement.textContent = state.status;
+
+    turnIndicator.textContent =
+        `${capitalize(state.turn)} to move`;
+
+    document.getElementById("turnValue").textContent =
+        capitalize(state.turn);
+
+    document.getElementById("aiValue").textContent =
+        state.mode === "human_vs_stockfish"
+            ? "Stockfish"
+            : "PPO";
+
+    document.getElementById("evaluation").textContent =
+        state.evaluation === null ||
+        state.evaluation === undefined
+            ? "—"
+            : `${state.evaluation > 0 ? "+" : ""}${state.evaluation}`;
+
+    fenElement.textContent = state.fen;
+}
+
+function capitalize(value) {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function showError(message) {
+    statusElement.textContent = `Error: ${message}`;
+}
+
+async function loadState() {
+    try {
+        const response = await fetch("/api/state");
+        const data = await response.json();
+
+        if (data.success) {
+            state = data.state;
+            render();
+        }
+    } catch (error) {
+        document.getElementById("connectionStatus").textContent =
+            "● OFFLINE";
+    }
+}
+
+document
+    .getElementById("newGame")
+    .addEventListener("click", newGame);
+
+document
+    .getElementById("undo")
+    .addEventListener("click", undo);
+
+document
+    .getElementById("reset")
+    .addEventListener("click", resetGame);
+
+modeElement.addEventListener("change", () => {
+    const humanControls =
+        modeElement.value !== "ppo_vs_stockfish";
+
+    humanColorElement.disabled = !humanControls;
+});
+
+loadState();

@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# macOS
+.DS_Store
+
+# Training artifacts
+tensorboard/
+checkpoints/
+masked_checkpoints/
+selfplay_checkpoints/
+
+# Backups
+*.backup
+*.before-*
+*.v211-*
+*.v212-*
+backups/
+
+# Old model
+chess_ai_agent.h5
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# Local virtual-environment files accidentally present at project root
+bin/
+share/
+pyvenv.cfg
+
+# Additional TensorBoard logs
+tensorboard_masked/

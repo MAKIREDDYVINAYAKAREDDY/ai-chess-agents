@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>AI Chess Agents</title>
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+<div class="app-shell">
+
+    <header class="topbar">
+        <div>
+            <div class="eyebrow">REINFORCEMENT LEARNING • CHESS</div>
+            <h1>AI Chess Agents</h1>
+            <p>Play against the PPO agent or Stockfish.</p>
+        </div>
+
+        <div class="status-pill" id="connectionStatus">
+            ● ONLINE
+        </div>
+    </header>
+
+    <main class="main-grid">
+
+        <section class="board-panel">
+
+            <div class="game-header">
+                <div>
+                    <div class="label">CURRENT GAME</div>
+                    <div class="game-status" id="gameStatus">
+                        Ready
+                    </div>
+                </div>
+
+                <div class="turn-indicator" id="turnIndicator">
+                    White to move
+                </div>
+            </div>
+
+            <div class="board-wrapper">
+
+                <div class="rank-labels">
+                    <span>8</span>
+                    <span>7</span>
+                    <span>6</span>
+                    <span>5</span>
+                    <span>4</span>
+                    <span>3</span>
+                    <span>2</span>
+                    <span>1</span>
+                </div>
+
+                <div>
+                    <div id="board" class="chessboard"></div>
+
+                    <div class="file-labels">
+                        <span>a</span>
+                        <span>b</span>
+                        <span>c</span>
+                        <span>d</span>
+                        <span>e</span>
+                        <span>f</span>
+                        <span>g</span>
+                        <span>h</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="board-footer">
+                <div>
+                    <span class="small-label">FEN</span>
+                    <code id="fen">—</code>
+                </div>
+            </div>
+
+        </section>
+
+
+        <aside class="control-panel">
+
+            <section class="card">
+
+                <h2>New Game</h2>
+
+                <label>Game Mode</label>
+
+                <select id="mode">
+                    <option value="human_vs_ppo">
+                        Human vs PPO Agent
+                    </option>
+                    <option value="human_vs_stockfish">
+                        Human vs Stockfish
+                    </option>
+                    <option value="ppo_vs_stockfish">
+                        PPO vs Stockfish
+                    </option>
+                </select>
+
+                <label>Human Color</label>
+
+                <select id="humanColor">
+                    <option value="white">White</option>
+                    <option value="black" selected>Black</option>
+                </select>
+
+                <label>Stockfish Level</label>
+
+                <div class="range-row">
+                    <input
+                        id="stockfishLevel"
+                        type="range"
+                        min="0"
+                        max="20"
+                        value="8"
+                    >
+                    <strong id="levelValue">8</strong>
+                </div>
+
+                <button id="newGame" class="primary-button">
+                    ♟ Start New Game
+                </button>
+
+                <div class="button-row">
+                    <button id="undo">↶ Undo</button>
+                    <button id="reset">⟳ Reset</button>
+                </div>
+
+            </section>
+
+
+            <section class="card">
+
+                <div class="section-title">
+                    <h2>Game Info</h2>
+                </div>
+
+                <div class="stats-grid">
+
+                    <div class="stat">
+                        <span>Moves</span>
+                        <strong id="moveCount">0</strong>
+                    </div>
+
+                    <div class="stat">
+                        <span>Turn</span>
+                        <strong id="turnValue">White</strong>
+                    </div>
+
+                    <div class="stat">
+                        <span>AI</span>
+                        <strong id="aiValue">PPO</strong>
+                    </div>
+
+                    <div class="stat">
+                        <span>Eval</span>
+                        <strong id="evaluation">—</strong>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section class="card">
+
+                <h2>Captured Pieces</h2>
+
+                <div id="captured" class="captured">
+                    —
+                </div>
+
+            </section>
+
+
+            <section class="card move-card">
+
+                <div class="section-title">
+                    <h2>Move History</h2>
+                    <span id="moveTotal">0</span>
+                </div>
+
+                <div id="moveHistory" class="move-history">
+                    No moves yet.
+                </div>
+
+            </section>
+
+
+            <section class="hint-card">
+
+                <strong>How to play</strong>
+
+                <p>
+                    Select a piece, then select a highlighted legal
+                    destination.
+                </p>
+
+                <p>
+                    Green squares indicate legal moves.
+                </p>
+
+            </section>
+
+        </aside>
+
+    </main>
+
+    <footer>
+        AI Chess Agents • PPO + Stockfish • python-chess
+    </footer>
+
+</div>
+
+<script
+    src="{{ url_for('static', filename='script.js') }}?v=12"
+></script>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+Flask>=3.0
+numpy>=1.26
+python-chess>=1.11
+stable-baselines3>=2.5
+sb3-contrib>=2.5
+gymnasium>=1.0
+gunicorn>=23.0
