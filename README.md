@@ -18,3 +18,16 @@ Rewards:
 Training: Uses PPO algorithm with 50,000 timesteps (configurable).
 Model Saving/Loading: Saves the trained model as chess_ai_agent.h5 for reuse.
 Rendering: Displays the board state during gameplay.
+## Screenshots
+
+### Dashboard
+
+The AI Chess Agents dashboard provides an interactive chess interface for playing against the PPO agent or Stockfish, with game controls, move history, captured pieces, and position information.
+
+![AI Chess Agents Dashboard](images/dashboard.png)
+
+### AI vs AI
+
+The AI vs AI mode allows the trained PPO agent to play against Stockfish automatically.
+
+![AI vs AI](images/ai-vs-ai.png)
